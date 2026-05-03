@@ -18,18 +18,26 @@ dotenv.config();
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-    cors: {
-        origin: "http://localhost:5173",
-        credentials: true,
-        methods: ["GET", "POST", "PUT", "DELETE"]
-    }
+  cors: {
+    origin: [
+      "http://localhost:5173",
+      "https://gauravkoshti88.github.io",
+      "https://gauravkoshti88.github.io/desizapp-food"
+    ],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE"]
+  }
 });
 
 app.set("io", io)
 
 const port = process.env.PORT || 8000;
 app.use(cors({
-  origin: "http://localhost:5173",
+  origin: [
+    "http://localhost:5173",
+    "https://gauravkoshti88.github.io",
+    "https://gauravkoshti88.github.io/desizapp-food"
+  ],
   credentials: true
 }));
 
@@ -57,8 +65,8 @@ app.use("/api/order", orderRouter)
 
 socketHandler(io)
 
-server.listen(port, ()=>{
-    dbConnect();
-    console.log(`Server is running on http://localhost:${port}`);
+server.listen(port, () => {
+  dbConnect();
+  console.log(`Server is running on http://localhost:${port}`);
 })
 
