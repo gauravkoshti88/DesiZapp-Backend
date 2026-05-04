@@ -8,105 +8,114 @@ import Item from "../models/item.model.js";
  */
 
 export const addItem = async (req, res) => {
-    const { dishname, category, price, foodType } = req.body
+  const { dishname, category, price, foodType } = req.body;
 
-    try {
-
-        let image;
-        let video;
-
-        if (req.files?.image?.[0]) {
-            const result = await uploadOnCloudinary(req.files.image[0].path, "image");
-            image = { url: result.secure_url, public_id: result.public_id }
-        }
-
-        if (req.files?.video?.[0]) {
-            const result = await uploadOnCloudinary(req.files.video[0].path, "video");
-            video = { url: result.secure_url, public_id: result.public_id };
-        }
-
-        const shop = await Shop.findOne({ owner: req.userId });
-        if (!shop) {
-            return res.status(404).json({ error: "Shop not found" });
-        }
-
-        const item = await Item.create({
-            shop: shop._id,
-            dishname,
-            category,
-            price,
-            foodType,
-            image,
-            video,
-        })
-
-        shop.foodItems.push(item._id)
-
-        await shop.save();
-        await shop.populate("owner");
-        await shop.populate({ path: "foodItems", options: { sort: { updatedAt: -1 } } });
-
-        return res.status(201).json(shop)
-    } catch (error) {
-  
-        res.status(500).json({
-            err: `Add item error ${error}`
-        })
+  try {
+    let image;
+    let video;
+   
+    if (req.files?.image?.[0]) {
+      const result = await uploadOnCloudinary(req.files.image[0].buffer, "image");
+      if (result) {
+        image = { url: result.secure_url, public_id: result.public_id };
+      }
     }
-}
+
+    if (req.files?.video?.[0]) {
+      const result = await uploadOnCloudinary(req.files.video[0].buffer, "video");
+      if (result) {
+        video = { url: result.secure_url, public_id: result.public_id };
+      }
+    }
+
+    const shop = await Shop.findOne({ owner: req.userId });
+    if (!shop) {
+      return res.status(404).json({ error: "Shop not found" });
+    }
+
+    const item = await Item.create({
+      shop: shop._id,
+      dishname,
+      category,
+      price,
+      foodType,
+      image,
+      video,
+    });
+
+    shop.foodItems.push(item._id);
+
+    await shop.save();
+    await shop.populate("owner");
+    await shop.populate({ path: "foodItems", options: { sort: { updatedAt: -1 } } });
+
+    return res.status(201).json(shop);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      err: `Add item error ${error}`,
+    });
+  }
+};
+
 
 /**
  * Edit FoodItems Controller 
  * API - [/api/food/edit-item/:id]
  */
 
-import { v2 as cloudinary } from "cloudinary";
-
 export const editItem = async (req, res) => {
-    try {
-        const { itemId } = req.params;
-        const { dishname, category, price, foodType } = req.body;
+  try {
+    const { itemId } = req.params;
+    const { dishname, category, price, foodType } = req.body;
 
-        const existingItem = await Item.findById(itemId);
-        if (!existingItem) {
-            return res.status(404).json({ error: "Item not found" });
-        }
-
-        let image = existingItem.image;
-        let video = existingItem.video;
-
-        if (req.files?.image?.[0]) {
-            if (existingItem.image?.public_id) {
-                const delRes = await deleteFromCloudinary(existingItem.image.public_id, "image");
-            }
-            const result = await uploadOnCloudinary(req.files.image[0].path, "image");
-            image = { url: result.secure_url, public_id: result.public_id };
-        }
-
-        if (req.files?.video?.[0]) {
-            if (existingItem.video?.public_id) {
-                const delRes = await deleteFromCloudinary(existingItem.video.public_id, "video");
-            }
-            const result = await uploadOnCloudinary(req.files.video[0].path, "video");
-            video = { url: result.secure_url, public_id: result.public_id };
-        }
-
-        await Item.findByIdAndUpdate(
-            itemId,
-            { dishname, category, price, foodType, image, video },
-            { returnDocument: "after" }
-        );
-
-        const shop = await Shop.findOne({ owner: req.userId }).populate({
-            path: "foodItems",
-            options: { sort: { updatedAt: -1 } }
-        });
-        return res.status(200).json(shop);
-
-    } catch (error) {
-        res.status(500).json({ err: `Internal Server Error ${error}` });
+    const existingItem = await Item.findById(itemId);
+    if (!existingItem) {
+      return res.status(404).json({ error: "Item not found" });
     }
+
+    let image = existingItem.image;
+    let video = existingItem.video;
+
+    // ✅ Image upload from buffer
+    if (req.files?.image?.[0]) {
+      if (existingItem.image?.public_id) {
+        await deleteFromCloudinary(existingItem.image.public_id, "image");
+      }
+      const result = await uploadOnCloudinary(req.files.image[0].buffer, "image");
+      if (result) {
+        image = { url: result.secure_url, public_id: result.public_id };
+      }
+    }
+
+    // ✅ Video upload from buffer
+    if (req.files?.video?.[0]) {
+      if (existingItem.video?.public_id) {
+        await deleteFromCloudinary(existingItem.video.public_id, "video");
+      }
+      const result = await uploadOnCloudinary(req.files.video[0].buffer, "video");
+      if (result) {
+        video = { url: result.secure_url, public_id: result.public_id };
+      }
+    }
+
+    await Item.findByIdAndUpdate(
+      itemId,
+      { dishname, category, price, foodType, image, video },
+      { returnDocument: "after" }
+    );
+
+    const shop = await Shop.findOne({ owner: req.userId }).populate({
+      path: "foodItems",
+      options: { sort: { updatedAt: -1 } }
+    });
+
+    return res.status(200).json(shop);
+  } catch (error) {
+    res.status(500).json({ err: `Internal Server Error ${error}` });
+  }
 };
+
 
 /**
  * Get FoodItem Controller 
