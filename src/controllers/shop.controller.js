@@ -10,9 +10,6 @@ export const createAndEditShop = async (req, res) => {
 
     let shop = await Shop.findOne({ owner: req.userId });
 
-    console.log(req.file);
-    
-
     if (req.file) {
       if (shop?.image?.public_id) {
         await deleteFromCloudinary(shop.image.public_id, "image");
@@ -38,8 +35,6 @@ export const createAndEditShop = async (req, res) => {
     await shop.populate("owner foodItems")
     return res.status(201).json(shop);
   } catch (error) {
-    console.log(error);
-    
     return res.status(500).json({
       err: `Create shop error ${error}`
     })
