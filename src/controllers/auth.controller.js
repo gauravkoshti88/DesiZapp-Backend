@@ -219,8 +219,6 @@ export const googleAuth = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
-    await sendWelcomeMail(user.email, user.fullname)
-
     return res.status(200).json(user);
   } catch (error) {
     return res.status(500).json(`Google Signup Error ${error}`)
