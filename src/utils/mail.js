@@ -21,7 +21,7 @@ export const textMail = () =>{
     subject: "Test Mail",
     text: "Working send mail"
   }
-  sgMail.send(msg);
+  return sgMail.send(msg);
 }
 
 export const sendOtpMail = async (to, otp) => {
