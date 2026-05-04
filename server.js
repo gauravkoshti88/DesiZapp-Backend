@@ -12,7 +12,6 @@ import http from 'http'
 import { Server } from 'socket.io';
 import { socketHandler } from './socket.js';
 import mongoose from "mongoose";
-import nodemailer from 'nodemailer'
 
 dotenv.config();
 
@@ -49,30 +48,6 @@ app.get("/", (req, res) => {
   res.send("Backend is running ✅");
 });
 
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
-  auth: {
-    user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASS,
-  },
-});
-
-app.get("/test-mail", async (req, res) => {
-  try {
-    await transporter.sendMail({
-      from: process.env.MAIL_USER,
-      to:process.env.MAIL_USER,
-      subject: "Test",
-      text: "Working"
-    })
-    res.send("Mail sent ✅")
-  } catch (error) {
-    console.error("Error", error);
-    res.send("Fail ❌")
-  }
-})
 
 // Authentication Routes
 app.use("/api/auth", authRouter);
