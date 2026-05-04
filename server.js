@@ -12,6 +12,7 @@ import http from 'http'
 import { Server } from 'socket.io';
 import { socketHandler } from './socket.js';
 import mongoose from "mongoose";
+import nodemailer from 'nodemailer'
 
 dotenv.config();
 
