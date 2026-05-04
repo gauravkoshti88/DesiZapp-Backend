@@ -35,6 +35,8 @@ export const createAndEditShop = async (req, res) => {
     await shop.populate("owner foodItems")
     return res.status(201).json(shop);
   } catch (error) {
+    console.log(error);
+    
     return res.status(500).json({
       err: `Create shop error ${error}`
     })
