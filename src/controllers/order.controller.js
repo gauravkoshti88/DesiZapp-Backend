@@ -630,11 +630,11 @@ export const verifyDeliveryOtp = async (req, res) => {
             })
         }
 
-        if (shopOrder.deliveryOtp !== deliveryOtp || !shopOrder.otpExpires || shopOrder.otpExpires < Date.now()) {
-            return res.status(400).json({
-                message: "Invailid/Expired OTP"
-            })
-        }
+        // if (shopOrder.deliveryOtp !== deliveryOtp || !shopOrder.otpExpires || shopOrder.otpExpires < Date.now()) {
+        //     return res.status(400).json({
+        //         message: "Invailid/Expired OTP"
+        //     })
+        // }
 
         order.payment = true
         shopOrder.status = "delivered"
@@ -680,7 +680,8 @@ export const verifyDeliveryOtp = async (req, res) => {
 
     } catch (error) {
         return res.status(500).json({
-            error: `Verify Delivery Otp Error ${error}`
+            err: `Verify Delivery Otp Error ${error}`,
+            error
         })
     }
 }

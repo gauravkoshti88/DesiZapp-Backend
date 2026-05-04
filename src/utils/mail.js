@@ -1,37 +1,15 @@
 import nodemailer from 'nodemailer'
-import sgMail from '@sendgrid/mail'
 import dotenv from 'dotenv'
 dotenv.config()
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-
-const msg = {
-    to: process.env.MAIL_USER,
-    from: process.env.MAIL_USER,
-    subject: "Test Mail",
-    text: "Working send mail"
-  }
-
-export const textMail = async () => {
-  try {
-    await sgMail.send(msg);
-  } catch (error) {
-    console.error(error);
-
-    if (error.response) {
-      console.error(error.response.body)
-    }
-  }
-}
 
 const transporter = nodemailer.createTransport({
-  host: "smtp.sendgrid.net",
+  host: "smtp.gmail.com",
   port: 587,
   secure: false,
   auth: {
-    user: "apikey",
-    pass: process.env.SENDGRID_API_KEY,
-  },
-  family: 4
+    user: process.env.MAIL_USER,
+    pass: process.env.MAIL_PASS,
+  }
 });
 
 export const sendOtpMail = async (to, otp) => {
@@ -48,16 +26,16 @@ export const sendOtpMail = async (to, otp) => {
 export const sendDeliveryOtpMail = async (customer, otp) => {
   try {
     await transporter.sendMail({
-    from: process.env.MAIL_USER,
-    to:customer.email,
-    subject: "Delivery OTP",
-    html: `<p>
+      from: process.env.MAIL_USER,
+      to: customer.email,
+      subject: "Delivery OTP",
+      html: `<p>
             Your OTP for delivery is <b>${otp}</b>. It expires in 5 minutes.
         </p>`
-  })
+    })
   } catch (error) {
-    console.log("mail error func",error);
-    
+    console.log("mail error func", error);
+
   }
 }
 

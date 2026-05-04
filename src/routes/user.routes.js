@@ -1,7 +1,7 @@
 import express from 'express';
 
 import authMiddleware from '../middlewere/authMiddleware.js';
-import { editUserProfile, getUser, updateUserLocation } from '../controllers/user.controller.js';
+import { editUserProfile, getDeliveredOrdersByDeliveryBoy, getUser, updateUserLocation } from '../controllers/user.controller.js';
 import upload from '../middlewere/multer.js';
 
 
@@ -12,5 +12,7 @@ userRouter.get("/get-user",authMiddleware, getUser);
 userRouter.post("/update-location",authMiddleware,updateUserLocation)
 
 userRouter.post("/edit-profile", authMiddleware, upload.single("profileImage"), editUserProfile)
+
+userRouter.get("/delivered-orders", authMiddleware, getDeliveredOrdersByDeliveryBoy)
 
 export default userRouter;

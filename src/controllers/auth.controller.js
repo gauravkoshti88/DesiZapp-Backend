@@ -15,6 +15,12 @@ export const userRegister = async (req, res) => {
       return res.status(409).json({ error: "User Already Exists" });
     }
 
+    const isExistPhone = await User.findOne({ phone });
+
+    if(isExistPhone){
+      return res.status(409).json({ error: "Phone No Already Exists" });
+    }
+
     if (password.length < 8) {
       return res.status(400).json({ error: "Password must be at least 8 characters long" });
     }
@@ -41,8 +47,6 @@ export const userRegister = async (req, res) => {
       sameSite: "none",
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
-
-    await sendWelcomeMail(newUser.email, newUser.fullname);
 
     const user= newUser.toObject();
     delete user.password;

@@ -12,7 +12,6 @@ import http from 'http'
 import { Server } from 'socket.io';
 import { socketHandler } from './socket.js';
 import mongoose from "mongoose";
-import { textMail } from "./src/utils/mail.js";
 
 dotenv.config();
 
@@ -47,16 +46,6 @@ app.use(cookieParser());
 
 app.get("/", (req, res) => {
   res.send("Backend is running ✅");
-});
-
-app.get("/test", async (req, res) => {
-  try {
-    const success = await textMail();
-      return res.send("Mail Working ✅");
-  } catch (error) {
-    console.error(error);
-    return res.send("Mail Fail ❌");
-  }
 });
 
 // Authentication Routes

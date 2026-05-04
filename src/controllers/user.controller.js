@@ -1,4 +1,5 @@
 import User from '../models/user.model.js'
+import Order from "../models/order.model.js"
 import { deleteFromCloudinary, uploadOnCloudinary } from '../utils/cloudinary.js';
 
 /**
@@ -89,3 +90,30 @@ export const editUserProfile = async (req, res) => {
     });
   }
 };
+
+export const getDeliveredOrdersByDeliveryBoy = async (req, res) => {
+  try {
+    const deliveryBoyId = req.userId; 
+    const orders = await Order.find({
+      "shopOrders.assignDeliveryBoy": deliveryBoyId,
+      "shopOrders.status": "delivered"
+    })
+      .sort({ createdAt: -1 }) 
+      .populate("customer", "fullname email")
+      .populate("shopOrders.shop", "restaurantName") 
+      .populate("shopOrders.owner", "fullname email")
+      .populate("shopOrders.shopOrderItems.item", "dishname")
+
+    return res.status(200).json({
+      success: true,
+      count: orders.length,
+      orders,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: `Error fetching delivered orders: ${error.message}`,
+    });
+  }
+};
+
