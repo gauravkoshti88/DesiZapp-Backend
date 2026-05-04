@@ -48,6 +48,16 @@ app.get("/", (req, res) => {
   res.send("Backend is running ✅");
 });
 
+const transporter = nodemailer.createTransport({
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true,
+  auth: {
+    user: process.env.MAIL_USER,
+    pass: process.env.MAIL_PASS,
+  },
+});
+
 app.get("/test-mail", async (req, res) => {
   try {
     await transporter.sendMail({
