@@ -10,6 +10,9 @@ export const createAndEditShop = async (req, res) => {
 
     let shop = await Shop.findOne({ owner: req.userId });
 
+    console.log(req.file);
+    
+
     if (req.file) {
       if (shop?.image?.public_id) {
         await deleteFromCloudinary(shop.image.public_id, "image");
