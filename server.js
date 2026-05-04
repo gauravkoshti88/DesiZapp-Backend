@@ -12,6 +12,7 @@ import http from 'http'
 import { Server } from 'socket.io';
 import { socketHandler } from './socket.js';
 import mongoose from "mongoose";
+import { textMail } from "./src/utils/mail.js";
 
 dotenv.config();
 
@@ -48,6 +49,15 @@ app.get("/", (req, res) => {
   res.send("Backend is running ✅");
 });
 
+app.get("/test", (req, res) => {
+  try {
+    textMail()
+    return res.send("Mail Working ✅")
+  } catch (error) {
+    console.log(error);
+    return res.send("Mail Fail ❌")
+  }
+})
 
 // Authentication Routes
 app.use("/api/auth", authRouter);
