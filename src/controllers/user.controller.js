@@ -44,7 +44,6 @@ export const updateUserLocation = async (req, res) => {
       mesaage: "Location Updated"
     });
   } catch (error) {
-   
     return res.status(500).json({ err: `update user location error ${error}` });
   }
 }
@@ -63,11 +62,13 @@ export const editUserProfile = async (req, res) => {
 
     if (req.file) {
       if (user?.profileImage?.public_id) {
-        await deleteFromCloudinary(user.profileImage.public_id, "profileImage");
+        await deleteFromCloudinary(user.profileImage.public_id, "image");
       }
 
-      const result = await uploadOnCloudinary(req.file.path, "profileImage");
-      profileImage = { url: result.secure_url, public_id: result.public_id };
+      const result = await uploadOnCloudinary(req.file.buffer, "profileImage");
+      if (result) {
+        profileImage = { url: result.secure_url, public_id: result.public_id };
+      }
     }
 
     user = await User.findByIdAndUpdate(
@@ -83,24 +84,23 @@ export const editUserProfile = async (req, res) => {
 
     return res.status(200).json(user);
   } catch (error) {
-    (error);
-    
     return res.status(500).json({
       err: `Edit user profile error ${error}`
     });
   }
 };
 
+
 export const getDeliveredOrdersByDeliveryBoy = async (req, res) => {
   try {
-    const deliveryBoyId = req.userId; 
+    const deliveryBoyId = req.userId;
     const orders = await Order.find({
       "shopOrders.assignDeliveryBoy": deliveryBoyId,
       "shopOrders.status": "delivered"
     })
-      .sort({ createdAt: -1 }) 
+      .sort({ createdAt: -1 })
       .populate("customer", "fullname email")
-      .populate("shopOrders.shop", "restaurantName") 
+      .populate("shopOrders.shop", "restaurantName")
       .populate("shopOrders.owner", "fullname email")
       .populate("shopOrders.shopOrderItems.item", "dishname")
 

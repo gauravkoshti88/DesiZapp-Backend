@@ -18,7 +18,7 @@ export const createAndEditShop = async (req, res) => {
         await deleteFromCloudinary(shop.image.public_id, "image");
       }
 
-      const result = await uploadOnCloudinary(req.file.path, "image");
+      const result = await uploadOnCloudinary(req.file.buffer, "shopImage");
       image = { url: result.secure_url, public_id: result.public_id };
     }
 
