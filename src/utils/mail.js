@@ -3,19 +3,9 @@ import sgMail from '@sendgrid/mail'
 import dotenv from 'dotenv'
 dotenv.config()
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-const transporter = nodemailer.createTransport({
-  host: "smtp.sendgrid.net",
-  port: 587,
-  secure: false,
-  auth: {
-    user: "apikey",
-    pass: process.env.SENDGRID_API_KEY,
-  },
-  family: 4
-});
 
 const msg = {
-    to: "gauravkoshti1@gmail.com",
+    to: process.env.MAIL_USER,
     from: process.env.MAIL_USER,
     subject: "Test Mail",
     text: "Working send mail"
@@ -32,6 +22,17 @@ export const textMail = async () => {
     }
   }
 }
+
+const transporter = nodemailer.createTransport({
+  host: "smtp.sendgrid.net",
+  port: 587,
+  secure: false,
+  auth: {
+    user: "apikey",
+    pass: process.env.SENDGRID_API_KEY,
+  },
+  family: 4
+});
 
 export const sendOtpMail = async (to, otp) => {
   await transporter.sendMail({

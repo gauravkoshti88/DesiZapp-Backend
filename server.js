@@ -49,15 +49,15 @@ app.get("/", (req, res) => {
   res.send("Backend is running ✅");
 });
 
-app.get("/test", (req, res) => {
+app.get("/test", async (req, res) => {
   try {
-    textMail()
-    return res.send("Mail Working ✅")
+    const success = await textMail();
+      return res.send("Mail Working ✅");
   } catch (error) {
-    console.log(error);
-    return res.send("Mail Fail ❌")
+    console.error(error);
+    return res.send("Mail Fail ❌");
   }
-})
+});
 
 // Authentication Routes
 app.use("/api/auth", authRouter);
