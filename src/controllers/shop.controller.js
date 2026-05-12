@@ -1,8 +1,6 @@
 import Shop from "../models/shop.model.js";
 import { deleteFromCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js";
 
-
-
 export const createAndEditShop = async (req, res) => {
   try {
     const { restaurantName, city, state, address } = req.body;
@@ -82,3 +80,44 @@ export const getShopByCity =async (req, res) => {
     })
   }
 }
+
+// Get Shop Earnings Controller -->> 
+export const getShopEarnings = async (req, res) => {
+  try {
+    const { shopId } = req.params;
+
+    const orders = await Order.find({ "shopOrders.shop": shopId })
+      .populate("customer", "name email")
+      .populate("shopOrders.shop", "restaurantName city state")
+      .populate("shopOrders.assignDeliveryBoy", "name email")
+      .sort({ createdAt: -1 });
+
+    if (!orders || orders.length === 0) {
+      return res.status(404).json({ message: "No orders found for this shop" });
+    }
+
+    let totalRevenue = 0;
+    let totalOrders = 0;
+
+    orders.forEach(order => {
+      order.shopOrders.forEach(shopOrder => {
+        if (shopOrder.shop.toString() === shopId) {
+          totalRevenue += shopOrder.subtotal;
+          totalOrders += 1;
+        }
+      });
+    });
+
+    return res.json({
+      shopId,
+      totalRevenue,
+      totalOrders,
+      avgOrderValue: totalOrders > 0 ? (totalRevenue / totalOrders).toFixed(2) : 0,
+      orders,
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
