@@ -88,37 +88,33 @@ export const getShopEarnings = async (req, res) => {
     const { shopId } = req.params;
 
     const orders = await Order.find({ "shopOrders.shop": shopId })
-      .populate("customer", "name email")
-      .populate("shopOrders.shop", "restaurantName city state")
+      .populate("customer", "email")
+      .populate("shopOrders.shop", "restaurantName")
       .populate("shopOrders.assignDeliveryBoy", "name email")
       .sort({ createdAt: -1 });
-
-    if (!orders || orders.length === 0) {
-      return res.status(404).json({ message: "No orders found for this shop" });
-    }
 
     let totalRevenue = 0;
     let totalOrders = 0;
 
     orders.forEach(order => {
       order.shopOrders.forEach(shopOrder => {
-        if (shopOrder.shop.toString() === shopId) {
-          totalRevenue += shopOrder.subtotal;
+        if (shopOrder.shop && shopOrder.shop._id.toString() === shopId) {
+          totalRevenue += shopOrder.subtotal || 0;
           totalOrders += 1;
         }
       });
     });
 
-    return res.json({
+    res.json({
       shopId,
       totalRevenue,
       totalOrders,
       avgOrderValue: totalOrders > 0 ? (totalRevenue / totalOrders).toFixed(2) : 0,
-      orders,
+      orders
     });
 
   } catch (error) {
-    console.error(error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
