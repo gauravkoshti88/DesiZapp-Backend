@@ -1,4 +1,5 @@
 import Shop from "../models/shop.model.js";
+import Order from '../models/order.model.js'
 import { deleteFromCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js";
 
 export const createAndEditShop = async (req, res) => {
