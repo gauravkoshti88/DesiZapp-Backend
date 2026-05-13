@@ -12,6 +12,7 @@ import http from 'http'
 import { Server } from 'socket.io';
 import { socketHandler } from './socket.js';
 import mongoose from "mongoose";
+import adminRouter from "./src/routes/admin.routes.js";
 
 dotenv.config();
 
@@ -21,6 +22,7 @@ const io = new Server(server, {
   cors: {
     origin: [
       "http://localhost:5173",
+      "http://localhost:5174",
       "https://gauravkoshti88.github.io",
       "https://desizapp.vercel.app/"
     ],
@@ -35,6 +37,7 @@ const port = process.env.PORT || 8000;
 app.use(cors({
   origin: [
     "http://localhost:5173",
+    "http://localhost:5174",
     "https://gauravkoshti88.github.io",
     "https://desizapp.vercel.app/"
   ],
@@ -60,8 +63,11 @@ app.use("/api/shop", shopRouter);
 // Items Routes
 app.use("/api/food", itemRouter);
 
-// Orders  Routes 
-app.use("/api/order", orderRouter)
+// Orders Routes 
+app.use("/api/order", orderRouter);
+
+// Admin Routes
+app.use("/api/admin", adminRouter);
 
 socketHandler(io)
 
