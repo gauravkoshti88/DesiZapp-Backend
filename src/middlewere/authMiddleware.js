@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
+import User from '../models/user.model.js'
 
-const authMiddleware = (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
     try {
         const { token } = req.cookies;
 
@@ -17,6 +18,20 @@ const authMiddleware = (req, res, next) => {
             return res.status(401).json({
                 error: "Unauthorized - Invalid Token"
             });
+        }
+
+        const user = await User.findById(verifyToken.userId)
+
+        if(!user){
+            return res.status(404).json({
+                message:"User not found"
+            })
+        }
+
+        if(user.isBlocked){
+            return res.status(403).json({
+                message: "Your account has been blocked"
+            })
         }
         
         req.userId = verifyToken.userId;

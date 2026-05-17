@@ -7,7 +7,7 @@ export const createAndEditShop = async (req, res) => {
     const { restaurantName, city, state, address } = req.body;
     let image;
 
-    let shop = await Shop.findOne({ owner: req.userId });
+    let shop = await Shop.findOne({ owner: req.userId })
 
     if (req.file) {
       if (shop?.image?.public_id) {
