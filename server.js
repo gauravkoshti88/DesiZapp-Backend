@@ -23,8 +23,7 @@ const io = new Server(server, {
     origin: [
       "http://localhost:5173",
       "http://localhost:5174",
-      "https://gauravkoshti88.github.io",
-      "https://desizapp.vercel.app/"
+      "https://gauravkoshti88.github.io"
     ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE"]
@@ -38,8 +37,7 @@ app.use(cors({
   origin: [
     "http://localhost:5173",
     "http://localhost:5174",
-    "https://gauravkoshti88.github.io",
-    "https://desizapp.vercel.app/"
+    "https://gauravkoshti88.github.io"
   ],
   credentials: true
 }));
