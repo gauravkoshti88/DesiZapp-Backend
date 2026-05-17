@@ -1,6 +1,7 @@
 import Shop from "../models/shop.model.js";
 import { uploadOnCloudinary, deleteFromCloudinary } from '../utils/cloudinary.js'
 import Item from "../models/item.model.js";
+import redisClient from "../config/redis.js";
 
 /**
  * Add FoodItem Controller 
@@ -13,7 +14,7 @@ export const addItem = async (req, res) => {
   try {
     let image;
     let video;
-   
+
     if (req.files?.image?.[0]) {
       const result = await uploadOnCloudinary(req.files.image[0].buffer, "image");
       if (result) {
@@ -49,6 +50,13 @@ export const addItem = async (req, res) => {
     await shop.populate("owner");
     await shop.populate({ path: "foodItems", options: { sort: { updatedAt: -1 } } });
 
+    // Redis cache invalidation
+    const shopCacheKey = `shopMenu:${shop._id}`;
+    const cityCacheKey = `cityMenu:${shop.city.toLowerCase()}`;
+    await redisClient.del(shopCacheKey);
+    await redisClient.del(cityCacheKey);
+    await redisClient.del("itemList");
+
     return res.status(201).json(shop);
   } catch (error) {
     console.error(error);
@@ -57,6 +65,7 @@ export const addItem = async (req, res) => {
     });
   }
 };
+
 
 
 /**
@@ -77,7 +86,6 @@ export const editItem = async (req, res) => {
     let image = existingItem.image;
     let video = existingItem.video;
 
-    // ✅ Image upload from buffer
     if (req.files?.image?.[0]) {
       if (existingItem.image?.public_id) {
         await deleteFromCloudinary(existingItem.image.public_id, "image");
@@ -88,7 +96,6 @@ export const editItem = async (req, res) => {
       }
     }
 
-    // ✅ Video upload from buffer
     if (req.files?.video?.[0]) {
       if (existingItem.video?.public_id) {
         await deleteFromCloudinary(existingItem.video.public_id, "video");
@@ -110,11 +117,18 @@ export const editItem = async (req, res) => {
       options: { sort: { updatedAt: -1 } }
     });
 
+    // Redis cache invalidation
+    const shopCacheKey = `shopMenu:${shop._id}`;
+    const cityCacheKey = `cityMenu:${shop.city.toLowerCase()}`;
+    await redisClient.del(shopCacheKey);
+    await redisClient.del(cityCacheKey);
+
     return res.status(200).json(shop);
   } catch (error) {
     res.status(500).json({ err: `Internal Server Error ${error}` });
   }
 };
+
 
 
 /**
@@ -123,19 +137,19 @@ export const editItem = async (req, res) => {
  */
 
 export const getItemById = async (req, res) => {
-    try {
-        const { id } = req.params;
+  try {
+    const { id } = req.params;
 
-        const item = await Item.findById(id)
+    const item = await Item.findById(id)
 
-        if (!item) {
-            return res.status(404).json({ message: "Food item not found" });
-        }
-
-        return res.status(200).json(item);
-    } catch (error) {
-        return res.status(500).json({ error: "Get Items Error" });
+    if (!item) {
+      return res.status(404).json({ message: "Food item not found" });
     }
+
+    return res.status(200).json(item);
+  } catch (error) {
+    return res.status(500).json({ error: "Get Items Error" });
+  }
 }
 
 /**
@@ -144,46 +158,49 @@ export const getItemById = async (req, res) => {
  */
 
 export const removeFoodItem = async (req, res) => {
-    try {
-        const { id } = req.params;
+  try {
+    const { id } = req.params;
 
-        const deleteFoodItem = await Item.findByIdAndDelete(id);
-
-        if (!deleteFoodItem) {
-            return res.status(404).json({ message: "Food item not found" });
-        }
-
-        // Delete image/video from Cloudinary if present
-        if (deleteFoodItem.image?.public_id) {
-            const delRes = await deleteFromCloudinary(deleteFoodItem.image.public_id, "image");
-        }
-
-        if (deleteFoodItem.video?.public_id) {
-            const delRes = await deleteFromCloudinary(deleteFoodItem.video.public_id, "video");
-        }
-
-        // Remove item reference from shop
-        const shop = await Shop.findOne({ owner: req.userId });
-        if (!shop) {
-            return res.status(404).json({ message: "Shop not found" });
-        }
-
-        shop.foodItems = shop.foodItems.filter(
-            i => i.toString() !== deleteFoodItem._id.toString()
-        );
-
-        await shop.save();
-
-        await shop.populate({
-            path: "foodItems",
-            options: { sort: { updatedAt: -1 } }
-        });
-
-        res.status(200).json(shop);
-    } catch (error) {
-        res.status(500).json({ message: "Server error while removing food item" });
+    const deleteFoodItem = await Item.findByIdAndDelete(id);
+    if (!deleteFoodItem) {
+      return res.status(404).json({ message: "Food item not found" });
     }
+
+    if (deleteFoodItem.image?.public_id) {
+      await deleteFromCloudinary(deleteFoodItem.image.public_id, "image");
+    }
+
+    if (deleteFoodItem.video?.public_id) {
+      await deleteFromCloudinary(deleteFoodItem.video.public_id, "video");
+    }
+
+    const shop = await Shop.findOne({ owner: req.userId });
+    if (!shop) {
+      return res.status(404).json({ message: "Shop not found" });
+    }
+
+    shop.foodItems = shop.foodItems.filter(
+      i => i.toString() !== deleteFoodItem._id.toString()
+    );
+
+    await shop.save();
+    await shop.populate({
+      path: "foodItems",
+      options: { sort: { updatedAt: -1 } }
+    });
+
+    // Redis cache invalidation
+    const shopCacheKey = `shopMenu:${shop._id}`;
+    const cityCacheKey = `cityMenu:${shop.city.toLowerCase()}`;
+    await redisClient.del(shopCacheKey);
+    await redisClient.del(cityCacheKey);
+
+    res.status(200).json(shop);
+  } catch (error) {
+    res.status(500).json({ message: "Server error while removing food item" });
+  }
 };
+
 
 
 /**
@@ -192,97 +209,114 @@ export const removeFoodItem = async (req, res) => {
  */
 
 export const getItemByCity = async (req, res) => {
-    try {
-        const { city } = req.params;
-
-        if (!city) {
-            return res.status(400).json({
-                error: "City Not Found"
-            })
-        }
-
-        const shop = await Shop.find({
-            city: { $regex: new RegExp(`^${city}$`, "i") }
-        }).populate("foodItems")
-
-        if (!shop) {
-            return res.status(404).json({ message: "Shop not found" });
-        }
-
-        const shopIds = shop.map((shop) => shop._id)
-
-        const items = await Item.find({ shop: { $in: shopIds } }).populate("shop", "restaurantName address")
-
-        return res.status(200).json(items);
-    } catch (error) {
-        res.status(500).json({ message: `Get Items By City Error ${error}` });
+  try {
+    const { city } = req.params;
+    if (!city) {
+      return res.status(400).json({ error: "City Not Found" });
     }
-}
+
+    const cacheKey = `cityMenu:${city.toLowerCase()}`;
+    const cachedItems = await redisClient.get(cacheKey);
+    if (cachedItems) {
+      return res.status(200).json(JSON.parse(cachedItems));
+    }
+
+    const shops = await Shop.find({
+      city: { $regex: new RegExp(`^${city}$`, "i") }
+    }).populate("foodItems");
+
+    if (!shops || shops.length === 0) {
+      return res.status(404).json({ message: "Shop not found" });
+    }
+
+    const shopIds = shops.map((shop) => shop._id);
+    const items = await Item.find({ shop: { $in: shopIds } })
+      .populate("shop", "restaurantName address");
+
+    await redisClient.setEx(cacheKey, 900, JSON.stringify(items));
+
+    return res.status(200).json(items);
+  } catch (error) {
+    res.status(500).json({ message: `Get Items By City Error ${error}` });
+  }
+};
+
 
 export const getItemByShop = async (req, res) => {
-    try {
-        const { shopId } = req.params;
+  try {
+    const { shopId } = req.params;
+    const cacheKey = `shopMenu:${shopId}`;
 
-        const shop = await Shop.findById(shopId)
-            .populate("foodItems")
-
-        if (!shop) {
-            return res.status(404).json({ message: "Shop not found" });
-        }
-
-        return res.status(200).json({
-            shop,
-            items: shop.foodItems
-        });
-    } catch (error) {
-        res.status(500).json({ message: `Get Items By Shop Error ${error}` });
+    const shopItems = await redisClient.get(cacheKey);
+    if (shopItems) {
+      return res.status(200).json(JSON.parse(shopItems));
     }
-}
+
+    const shop = await Shop.findById(shopId).populate("foodItems");
+    if (!shop) {
+      return res.status(404).json({ message: "Shop not found" });
+    }
+
+    await redisClient.setEx(
+      cacheKey,
+      900,
+      JSON.stringify({ shop, items: shop.foodItems })
+    );
+
+    return res.status(200).json({
+      shop,
+      items: shop.foodItems
+    });
+  } catch (error) {
+    res.status(500).json({ message: `Get Items By Shop Error ${error}` });
+  }
+};
+
 
 export const searchItems = async (req, res) => {
-    try {
-        const { query, city } = req.query;
+  try {
+    const { query, city } = req.query;
 
-        if (!query || !city) {
-            return res.status(400).json({ error: "Search query and city are required" });
-        }
-
-        const shop = await Shop.find({
-            city: { $regex: new RegExp(`^${city}$`, "i") }
-        }).populate("foodItems")
-
-        if (!shop) {
-            return res.status(400).json({
-                error: "Shop not found"
-            })
-        }
-
-        const shopIds = shop.map((s)=> s._id);
-
-        const items = await Item.find({
-            shop: { $in: shopIds },
-            $or:[
-                { dishname: { $regex: query, $options: "i" } },
-                { category: { $regex: query, $options: "i" } }
-            ]
-        }).populate("shop", "restaurantName address image")
-
-        return res.status(200).json(items);
-    } catch (error) {
-        res.status(500).json({ message: `Search Items Error ${error}` });
+    if (!query || !city) {
+      return res.status(400).json({ error: "Search query and city are required" });
     }
+
+    const shop = await Shop.find({
+      city: { $regex: new RegExp(`^${city}$`, "i") }
+    }).populate("foodItems")
+
+    if (!shop) {
+      return res.status(400).json({
+        error: "Shop not found"
+      })
+    }
+
+    const shopIds = shop.map((s) => s._id);
+
+    const items = await Item.find({
+      shop: { $in: shopIds },
+      $or: [
+        { dishname: { $regex: query, $options: "i" } },
+        { category: { $regex: query, $options: "i" } }
+      ]
+    }).populate("shop", "restaurantName address image")
+
+    return res.status(200).json(items);
+  } catch (error) {
+    res.status(500).json({ message: `Search Items Error ${error}` });
+  }
 }
 
 export const rating = async (req, res) => {
   try {
     const { itemId, rating } = req.body;
 
-    if(!itemId || !rating){
-        return res.status(400).json({ err: "Item ID and rating are required" });
+    if (!itemId || !rating) {
+      return res.status(400).json({ err: "Item ID and rating are required" });
     }
 
-    if(rating < 1 || rating > 5){
-        return res.status(400).json({ err: "Rating must be between 1 and 5" });
+    if (rating < 1 || rating > 5) {
+      return res.status(400).json({ err: "Rating must be between 1 and 5" });
     }
 
     const item = await Item.findById(itemId);
@@ -298,8 +332,8 @@ export const rating = async (req, res) => {
 
     await item.save();
 
-    return res.status(200).json({rating: item.rating });
-    
+    return res.status(200).json({ rating: item.rating });
+
   } catch (error) {
     return res.status(500).json({ err: `update user rating error ${error}` });
   }
@@ -309,6 +343,12 @@ export const getAllItems = async (req, res) => {
   try {
 
     const { page, limit = 10 } = req.query;
+
+    const redisData = await redisClient.get("itemList");
+
+    if (redisData) {
+      return res.status(200).json(JSON.parse(redisData));
+    }
 
     const items = await Item.find()
       .populate({
@@ -330,6 +370,8 @@ export const getAllItems = async (req, res) => {
       ownerFullname: item.shop?.owner?.fullname,
       videoUrl: item.video?.url
     }));
+
+    await redisClient.setEx("itemList", 1800, JSON.stringify(filteredItems))
 
     return res.status(200).json(filteredItems);
 
