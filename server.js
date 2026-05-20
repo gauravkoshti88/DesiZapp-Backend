@@ -25,7 +25,8 @@ const io = new Server(server, {
       "http://localhost:5173",
       "http://localhost:5174",
       "https://gauravkoshti88.github.io",
-      "https://desizapp-admin.vercel.app"
+      "https://desizapp-admin.vercel.app",
+      "https://desizapp-food-delivery.vercel.app"
     ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE"]
@@ -40,7 +41,8 @@ app.use(cors({
     "http://localhost:5173",
     "http://localhost:5174",
     "https://gauravkoshti88.github.io",
-    "https://desizapp-admin.vercel.app"
+    "https://desizapp-admin.vercel.app",
+    "https://desizapp-food-delivery.vercel.app"
   ],
   credentials: true
 }));
