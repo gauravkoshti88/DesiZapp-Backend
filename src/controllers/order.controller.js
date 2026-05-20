@@ -118,10 +118,9 @@ export const placeOrder = async (req, res) => {
             })
         }
 
-
         return res.status(201).json(newOrder);
 
-    } catch (error) { 
+    } catch (error) {
         return res.status(500).json({
             error: `Place Order Error ${error}`
         })
@@ -419,7 +418,7 @@ export const acceptOrder = async (req, res) => {
 
         const order = await Order.findById(assignment.order)
             .populate("customer")
-            .populate("shopOrders.owner","socketId");
+            .populate("shopOrders.owner", "socketId");
 
         if (!order) {
             return res.status(400).json({
@@ -441,8 +440,8 @@ export const acceptOrder = async (req, res) => {
         await order.save();
 
         (shopOrder);
-        ("shopId:",shopOrder.shop._id);
-        
+        ("shopId:", shopOrder.shop._id);
+
 
         const io = req.app.get("io");
 
@@ -603,7 +602,7 @@ export const sendDeliveryOtp = async (req, res) => {
         shopOrder.deliveryOtp = otp;
         shopOrder.otpExpires = Date.now() + 5 * 60 * 1000;
         await order.save();
-        
+
         await sendDeliveryOtpMail(order.customer, otp);
 
         return res.status(200).json({
@@ -611,7 +610,7 @@ export const sendDeliveryOtp = async (req, res) => {
         });
     } catch (error) {
         console.log(error);
-        
+
         return res.status(500).json({ error: `Send Delivery Otp Error ${error}` });
     }
 };
@@ -621,70 +620,79 @@ export const verifyDeliveryOtp = async (req, res) => {
     try {
         const { orderId, shopOrderId, deliveryOtp } = req.body;
 
-        const order = await Order.findById(orderId).populate("customer")
-        const shopOrder = order.shopOrders.id(shopOrderId)
+        const order = await Order.findById(orderId).populate("customer");
+        const shopOrder = order.shopOrders.id(shopOrderId);
 
         if (!order || !shopOrder) {
             return res.status(400).json({
-                error: "Enter vailid order/shopOrderId"
-            })
+                error: "Enter valid order/shopOrderId"
+            });
         }
 
+        // ✅ OTP check (uncomment if needed)
         // if (shopOrder.deliveryOtp !== deliveryOtp || !shopOrder.otpExpires || shopOrder.otpExpires < Date.now()) {
-        //     return res.status(400).json({
-        //         message: "Invailid/Expired OTP"
-        //     })
+        //   return res.status(400).json({
+        //     message: "Invalid/Expired OTP"
+        //   });
         // }
 
-        order.payment = true
-        shopOrder.status = "delivered"
+        // ✅ Mark order delivered
+        order.payment = true;
+        shopOrder.status = "delivered";
         shopOrder.deliveredAt = Date.now();
 
         await order.save();
 
+        // ✅ Remove delivery assignment
         await DeliveryAssign.deleteOne({
             shopOrderId: shopOrder._id,
             order: order._id,
             assignTo: shopOrder.assignDeliveryBoy
-        })
+        });
 
-        const io = req.app.get("io")
+        const io = req.app.get("io");
 
+        // ✅ Emit socket events
         if (io) {
-            const customerSocketId = order.customer.socketId
+            const customerSocketId = order.customer.socketId;
             if (customerSocketId) {
                 io.to(customerSocketId).emit("delivered", {
                     orderId: order._id,
                     shopId: shopOrder._id,
                     status: shopOrder.status,
                     userId: order.customer._id
-                })
+                });
             }
-        }
 
-        if (io) {
-            const shopSocketId = shopOrder.owner?.socketId
+            const shopSocketId = shopOrder.owner?.socketId;
             if (shopSocketId) {
                 io.to(shopSocketId).emit("delivered", {
                     orderId: order._id,
                     shopId: shopOrder._id,
                     status: shopOrder.status,
                     userId: shopOrder.owner._id
-                })
+                });
             }
         }
 
+        // ✅ AI Integration: Update User Order History
+        await User.findByIdAndUpdate(order.customer._id, {
+            $push: { orderHistory: order._id }
+        });
+
         return res.status(200).json({
-            message: "Order Delivered Successfylly ✅"
-        })
+            message: "Order Delivered Successfully ✅",
+            aiUpdate: "User order history updated for AI recommendations"
+        });
 
     } catch (error) {
         return res.status(500).json({
             err: `Verify Delivery Otp Error ${error}`,
             error
-        })
+        });
     }
-}
+};
+
 
 export const getTodayDeliveries = async (req, res) => {
     try {

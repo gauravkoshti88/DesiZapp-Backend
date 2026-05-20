@@ -56,12 +56,29 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false
     },
-    isBlocked:{
+    isBlocked: {
       type: Boolean,
       default: false
     },
     blockedAt: Date,
     blockedReason: String,
+    orderHistory: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Order"
+      }
+    ],
+    aiRecommendationScore: {
+      type: Number,
+      default: 0
+    },
+    aiFeedback: [
+      {
+        suggestion: String,
+        accepted: Boolean,
+        createdAt: { type: Date, default: Date.now }
+      }
+    ],
     location: {
       type: {
         type: String,

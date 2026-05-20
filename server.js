@@ -8,11 +8,12 @@ import shopRouter from './src/routes/shop.routes.js';
 import itemRouter from './src/routes/item.routes.js';
 import userRouter from './src/routes/user.routes.js';
 import orderRouter from './src/routes/order.routes.js';
+import adminRouter from "./src/routes/admin.routes.js";
+import aiRouter from "./src/routes/ai.routes.js";
 import http from 'http'
 import { Server } from 'socket.io';
 import { socketHandler } from './socket.js';
 import mongoose from "mongoose";
-import adminRouter from "./src/routes/admin.routes.js";
 
 dotenv.config();
 
@@ -23,7 +24,8 @@ const io = new Server(server, {
     origin: [
       "http://localhost:5173",
       "http://localhost:5174",
-      "https://gauravkoshti88.github.io"
+      "https://gauravkoshti88.github.io",
+      "https://desizapp-admin.vercel.app"
     ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE"]
@@ -37,7 +39,8 @@ app.use(cors({
   origin: [
     "http://localhost:5173",
     "http://localhost:5174",
-    "https://gauravkoshti88.github.io"
+    "https://gauravkoshti88.github.io",
+    "https://desizapp-admin.vercel.app"
   ],
   credentials: true
 }));
@@ -66,6 +69,8 @@ app.use("/api/order", orderRouter);
 
 // Admin Routes
 app.use("/api/admin", adminRouter);
+
+// app.use("/api/ai", aiRouter);
 
 socketHandler(io)
 
