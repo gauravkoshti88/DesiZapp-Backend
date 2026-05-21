@@ -234,7 +234,7 @@ export const adminLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (email === process.env.ADMIN_EMAIL || password === process.env.ADMIN_PASS) {
+    if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASS) {
       let token = await genrateToken(email);
       res.cookie('token', token, {
         httpOnly: true,
