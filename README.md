@@ -114,51 +114,8 @@ npm install
 
 ### Step 3: Configure Environment Variables
 
-Create a `.env` file in the root directory and add the following:
-
-```env
-# Server Configuration
-PORT=8000
-NODE_ENV=development
-
-# Database
-MONGODB_URL=mongodb://localhost:27017/desizapp
-# For MongoDB Atlas: mongodb+srv://username:password@cluster.mongodb.net/desizapp
-
-# JWT Configuration
-JWT_SECRET=your_super_secret_jwt_key_here
-JWT_EXPIRE=7d
-
-# Admin Credentials
-ADMIN_EMAIL=admin@desizapp.com
-ADMIN_PASSWORD=admin123
-
-# Google OAuth
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
-
-# Cloudinary (Image Storage)
-CLOUDINARY_NAME=your_cloudinary_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
-
-# Razorpay (Payments)
-RAZORPAY_KEY_ID=your_razorpay_key_id
-RAZORPAY_KEY_SECRET=your_razorpay_key_secret
-
-# Email Configuration (Nodemailer)
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASSWORD=your_app_password
-
-# Redis (Optional)
-REDIS_URL=redis://localhost:6379
-
-# OpenAI (Optional)
-OPENAI_API_KEY=your_openai_api_key
-
-# CORS Origins
-FRONTEND_URL_1=http://localhost:5173
-FRONTEND_URL_2=http://localhost:5174
+```bash
+Create a `.env` file in the root directory.
 ```
 
 ### Step 4: Start the Server
@@ -383,8 +340,8 @@ This project is licensed under the **MIT License**. See the LICENSE file for mor
 
 **Developer:** Gaurav Koshti  
 **GitHub:** [@gauravkoshti88](https://github.com/gauravkoshti88)  
-**LinkedIn:** [Gaurav Koshti](https://linkedin.com/in/gauravkoshti88)  
-**Email:** gaurav.koshti88@gmail.com
+**LinkedIn:** [Gaurav Koshti](www.linkedin.com/in/gaurav-koshti-565b73249)  
+**Email:** gaurav.koshti1@gmail.com
 
 ---
 
