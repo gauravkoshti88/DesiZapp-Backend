@@ -284,18 +284,6 @@ The backend uses Socket.io for real-time communication:
 - ✅ Admin middleware for protected routes
 - ✅ Environment variable protection
 
----
-
-## 📸 Screenshots
-
-*(Add screenshots here)*
-- API Response Examples
-- Admin Dashboard
-- Order Tracking Interface
-- Real-time Location Updates
-
----
-
 ## 🤝 Contributing
 
 Contributions are welcome! Here's how to help:
