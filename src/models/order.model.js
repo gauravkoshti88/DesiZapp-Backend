@@ -90,5 +90,10 @@ const orderSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+orderSchema.index({ customer: 1, createdAt: -1 });
+orderSchema.index({ "shopOrders.owner": 1, createdAt: -1 });
+orderSchema.index({ "shopOrders.assignDeliveryBoy": 1, "shopOrders.status": 1 });
+orderSchema.index({ "shopOrders.shop": 1 });
+
 const Order = mongoose.model("Order", orderSchema);
 export default Order;

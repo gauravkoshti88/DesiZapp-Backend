@@ -48,7 +48,7 @@ export const getMyShop = async (req, res) => {
     });
 
     if (!shop) {
-      return null
+      return res.status(200).json(null);
     }
 
     return res.status(200).json(shop);

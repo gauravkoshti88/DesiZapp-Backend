@@ -1,19 +1,17 @@
 import jwt from 'jsonwebtoken';
 
-const genrateToken = (userId, role) => {
+const genrateToken = (userId, role = "user") => {
     try {
         const token = jwt.sign(
-            { userId },  
+            { userId, role },  
             process.env.JWT_SECRET,
             { expiresIn: "7d" }
         );
-
-        if (token) {
-            return token;
-        }
+        return token;
     } catch (error) {
-        return error
+        console.error("Token generation error:", error);
+        throw error;
     }
-}
+};
 
 export default genrateToken;

@@ -93,7 +93,8 @@ const userSchema = new mongoose.Schema(
   }, { timestamps: true }
 );
 
-userSchema.index({ location: "2dsphere" })
+userSchema.index({ location: "2dsphere" });
+userSchema.index({ role: 1, isOnline: 1, isBlocked: 1 });
 
 const User = mongoose.model("User", userSchema);
 

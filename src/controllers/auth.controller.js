@@ -41,10 +41,11 @@ export const userRegister = async (req, res) => {
 
     const token = genrateToken(newUser._id);
 
+    const isProduction = process.env.NODE_ENV === "production";
     res.cookie("token", token, {
       httpOnly: true,
-      secure: true,
-      sameSite: "none",
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
@@ -53,10 +54,11 @@ export const userRegister = async (req, res) => {
 
     return res.status(201).json({
       message: "User Register Successfully",
-      user
+      user,
+      token
     });
   } catch (error) {
-    return res.status(500).json({ error: "Internal Server Error" });
+    return res.status(500).json({ error: error.message || "Internal Server Error" });
   }
 };
 
@@ -89,10 +91,11 @@ export const userLogin = async (req, res) => {
 
     const token = genrateToken(isExistUser._id);
 
+    const isProduction = process.env.NODE_ENV === "production";
     res.cookie("token", token, {
       httpOnly: true,
-      secure: true,
-      sameSite: "none",
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
@@ -101,10 +104,11 @@ export const userLogin = async (req, res) => {
 
     return res.status(200).json({
       message: "User Logged In Successfully",
-      user
+      user,
+      token
     });
   } catch (err) {
-    res.status(500).json({ error: "Internal Server Error", err });
+    res.status(500).json({ error: err.message || "Internal Server Error" });
   }
 };
 
@@ -115,19 +119,20 @@ export const userLogin = async (req, res) => {
 
 export const userLogout = (req, res) => {
   try {
+    const isProduction = process.env.NODE_ENV === "production";
     res.clearCookie("token", {
       httpOnly: true,
-      secure: true,
-      sameSite: "none"
-    })
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax"
+    });
 
     return res.status(200).json({
       message: "User Logout Successfully"
-    })
+    });
   } catch (err) {
-    res.status(500).json({ error: "Internal Server Error", err });
+    res.status(500).json({ error: err.message || "Internal Server Error" });
   }
-}
+};
 
 export const sendOtp = async (req, res) => {
   try {
@@ -211,43 +216,53 @@ export const googleAuth = async (req, res) => {
         fullname,
         email,
         phone,
-        role
-      })
+        role: role || "user"
+      });
     }
 
-    const token = genrateToken(user._id);
+    const token = genrateToken(user._id, user.role);
 
+    const isProduction = process.env.NODE_ENV === "production";
     res.cookie("token", token, {
       httpOnly: true,
-      secure: true,
-      sameSite: "none",
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
-    return res.status(200).json(user);
+    const userObj = user.toObject();
+    delete userObj.password;
+
+    return res.status(200).json({
+      message: "Google Auth Successful",
+      user: userObj,
+      token
+    });
   } catch (error) {
-    return res.status(500).json(`Google Signup Error ${error}`)
+    return res.status(500).json({ error: error.message || "Google Signup Error" });
   }
-}
+};
 
 export const adminLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
 
     if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASS) {
-      let token = await genrateToken(email);
+      let token = genrateToken(email, "admin");
+      const isProduction = process.env.NODE_ENV === "production";
       res.cookie('token', token, {
         httpOnly: true,
-        secure: true,
-        sameSite: "none",
+        secure: isProduction,
+        sameSite: isProduction ? "none" : "lax",
         maxAge: 7 * 24 * 60 * 60 * 1000
-      })
+      });
       return res.status(200).json({
-        message: "Admin Login Successfully"
-      })
+        message: "Admin Login Successfully",
+        token
+      });
     }
-    return res.status(400).json({ message: "Invalid Creadintials" })
+    return res.status(400).json({ message: "Invalid Credentials" });
   } catch (error) {
-    return res.status(500).json(`Admin Login Error ${error}`)
+    return res.status(500).json({ error: error.message || "Admin Login Error" });
   }
-}
+};

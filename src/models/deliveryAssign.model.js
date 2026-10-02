@@ -30,9 +30,13 @@ const deliveryAssignSchema = new mongoose.Schema({
         default:"brodcasted"
     },
     acceptedAt:Date
-},{timestamps:true})
+},{timestamps:true});
+
+deliveryAssignSchema.index({ brodcastedTo: 1, status: 1 });
+deliveryAssignSchema.index({ assignTo: 1, status: 1 });
+deliveryAssignSchema.index({ order: 1, shopOrderId: 1 });
 
 const DeliveryAssign = mongoose.model("DeliveryAssign", deliveryAssignSchema);
 
-export default DeliveryAssign
+export default DeliveryAssign;
 

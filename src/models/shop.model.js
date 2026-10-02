@@ -47,6 +47,9 @@ const shopSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+shopSchema.index({ owner: 1 });
+shopSchema.index({ city: 1 });
+
 const Shop = mongoose.model("Shop", shopSchema);
 
 export default Shop;
