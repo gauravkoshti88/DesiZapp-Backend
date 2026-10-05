@@ -4,51 +4,62 @@ const shopOrderItemSchema = new mongoose.Schema({
   item: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Item",
-    required: true
+    required: true,
   },
   dishname: String,
   price: Number,
-  quantity: Number
-})
+  quantity: Number,
+});
 
-const shopOrderSchema = new mongoose.Schema({
-  shop: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Shop",
+const shopOrderSchema = new mongoose.Schema(
+  {
+    shop: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Shop",
+    },
+    owner: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    subtotal: Number,
+    shopOrderItems: [shopOrderItemSchema],
+    status: {
+      type: String,
+      enum: [
+        "pending",
+        "confirm",
+        "preparing",
+        "out of delivery",
+        "on the way",
+        "delivered",
+        "rejected",
+      ],
+      default: "pending",
+    },
+    assignment: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "DeliveryAssign",
+      default: null,
+    },
+    assignDeliveryBoy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    deliveryOtp: {
+      type: String,
+      default: null,
+    },
+    otpExpires: {
+      type: Date,
+      default: null,
+    },
+    deliveredAt: {
+      type: Date,
+      default: null,
+    },
   },
-  owner: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-  },
-  subtotal: Number,
-  shopOrderItems: [shopOrderItemSchema],
-  status: {
-    type: String,
-    enum: ["pending", "confirm", "preparing", "out of delivery", "on the way", "delivered", "rejected"],
-    default: "pending"
-  },
-  assignment: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "DeliveryAssign",
-    default: null
-  },
-  assignDeliveryBoy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-  },
-  deliveryOtp: {
-    type: String,
-    default:null
-  },
-  otpExpires: {
-    type: Date,
-    default:null
-  },
-  deliveredAt:{
-    type:Date,
-    default:null
-  }
-}, { timestamps: true })
+  { timestamps: true },
+);
 
 const orderSchema = new mongoose.Schema(
   {
@@ -63,36 +74,55 @@ const orderSchema = new mongoose.Schema(
     paymentMethod: {
       type: String,
       enum: ["COD", "ONLINE"],
-      required: true
+      required: true,
     },
 
     // Shipping Info
     deliveryAddress: {
       text: String,
       latitude: Number,
-      longitude: Number
+      longitude: Number,
     },
 
     shopOrders: [shopOrderSchema],
     payment: {
       type: Boolean,
-      default: false
+      default: false,
     },
+
+    paymentStatus: {
+      type: String,
+      enum: ["pending", "authorized", "captured", "failed", "refunded"],
+      default: "pending",
+      index: true,
+    },
+
+    paymentOrderNotified: {
+      type: Boolean,
+      default: false,
+    },
+
     razorpayOrderId: {
       type: String,
-      default:""
+      default: "",
+      index: true,
     },
+
     razorpayPaymentId: {
       type: String,
-      default:""
+      default: "",
+      index: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 orderSchema.index({ customer: 1, createdAt: -1 });
 orderSchema.index({ "shopOrders.owner": 1, createdAt: -1 });
-orderSchema.index({ "shopOrders.assignDeliveryBoy": 1, "shopOrders.status": 1 });
+orderSchema.index({
+  "shopOrders.assignDeliveryBoy": 1,
+  "shopOrders.status": 1,
+});
 orderSchema.index({ "shopOrders.shop": 1 });
 
 const Order = mongoose.model("Order", orderSchema);

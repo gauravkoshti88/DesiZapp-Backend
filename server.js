@@ -9,12 +9,11 @@ import itemRouter from "./src/routes/item.routes.js";
 import userRouter from "./src/routes/user.routes.js";
 import orderRouter from "./src/routes/order.routes.js";
 import adminRouter from "./src/routes/admin.routes.js";
-import aiRouter from "./src/routes/ai.routes.js";
+// import aiRouter from "./src/routes/ai.routes.js";
 import http from "http";
 import { Server } from "socket.io";
 import { socketHandler } from "./socket.js";
-import mongoose from "mongoose";
-import { razorpayWebhook } from "./src/controllers/webhook.controller.js";
+import { razorpayWebhook } from "./src/controllers/order.controller.js";
 
 dotenv.config();
 
