@@ -3,17 +3,12 @@ import Order from "../models/order.model.js";
 import Shop from "../models/shop.model.js";
 import User from "../models/user.model.js";
 import { sendDeliveryOtpMail } from "../utils/mail.js";
-import Razorpay from "razorpay";
 import dotenv from "dotenv";
 import PaymentIntent from "../models/paymentIntentSchema.js";
 import WebhookEvent from "../models/webhookEventSchema.js";
+import razorpay from "../config/razorpay.js";
 
 dotenv.config();
-
-let instance = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
 
 const finalizePaidOrder = async ({
   req,
@@ -231,7 +226,7 @@ export const placeOrder = async (req, res) => {
         .toString(36)
         .slice(2, 10)}`;
 
-      const razorpayOrder = await instance.orders.create({
+      const razorpayOrder = await razorpay.orders.create({
         amount: Math.round(Number(totalAmount) * 100),
         currency: "INR",
         receipt: `receipt_order_${Date.now()}`,
@@ -369,7 +364,7 @@ export const paymentVerify = async (req, res) => {
       });
     }
 
-    const payment = await instance.payments.fetch(razorpayPaymentId);
+    const payment = await razorpay.payments.fetch(razorpayPaymentId);
 
     if (!payment) {
       return res.status(400).json({
