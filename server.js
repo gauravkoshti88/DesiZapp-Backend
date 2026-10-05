@@ -1,19 +1,20 @@
 import express from "express";
-import dotenv from 'dotenv'
+import dotenv from "dotenv";
 import dbConnect from "./src/config/db.js";
-import authRouter from './src/routes/auth.routes.js';
-import cookieParser from 'cookie-parser';
-import cors from 'cors'
-import shopRouter from './src/routes/shop.routes.js';
-import itemRouter from './src/routes/item.routes.js';
-import userRouter from './src/routes/user.routes.js';
-import orderRouter from './src/routes/order.routes.js';
+import authRouter from "./src/routes/auth.routes.js";
+import cookieParser from "cookie-parser";
+import cors from "cors";
+import shopRouter from "./src/routes/shop.routes.js";
+import itemRouter from "./src/routes/item.routes.js";
+import userRouter from "./src/routes/user.routes.js";
+import orderRouter from "./src/routes/order.routes.js";
 import adminRouter from "./src/routes/admin.routes.js";
 import aiRouter from "./src/routes/ai.routes.js";
-import http from 'http'
-import { Server } from 'socket.io';
-import { socketHandler } from './socket.js';
+import http from "http";
+import { Server } from "socket.io";
+import { socketHandler } from "./socket.js";
 import mongoose from "mongoose";
+import { razorpayWebhook } from "./src/controllers/webhook.controller.js";
 
 dotenv.config();
 
@@ -26,26 +27,37 @@ const io = new Server(server, {
       "http://localhost:5174",
       "https://gauravkoshti88.github.io",
       "https://desizapp-admin.vercel.app",
-      "https://desizapp-food-delivery.vercel.app"
+      "https://desizapp-food-delivery.vercel.app",
     ],
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE"]
-  }
+    methods: ["GET", "POST", "PUT", "DELETE"],
+  },
 });
 
-app.set("io", io)
+app.set("io", io);
 
 const port = process.env.PORT || 8000;
-app.use(cors({
-  origin: [
-    "http://localhost:5173",
-    "http://localhost:5174",
-    "https://gauravkoshti88.github.io",
-    "https://desizapp-admin.vercel.app",
-    "https://desizapp-food-delivery.vercel.app"
-  ],
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:5174",
+      "https://gauravkoshti88.github.io",
+      "https://desizapp-admin.vercel.app",
+      "https://desizapp-food-delivery.vercel.app",
+    ],
+    credentials: true,
+  }),
+);
+
+// Razorpay webhook must receive raw body
+app.post(
+  "/api/order/payment/webhook",
+  express.raw({
+    type: "application/json",
+  }),
+  razorpayWebhook,
+);
 
 app.use(express.json());
 app.use(cookieParser());
@@ -66,7 +78,7 @@ app.use("/api/shop", shopRouter);
 // Items Routes
 app.use("/api/food", itemRouter);
 
-// Orders Routes 
+// Orders Routes
 app.use("/api/order", orderRouter);
 
 // Admin Routes
@@ -74,10 +86,9 @@ app.use("/api/admin", adminRouter);
 
 // app.use("/api/ai", aiRouter);
 
-socketHandler(io)
+socketHandler(io);
 
 server.listen(port, () => {
   dbConnect();
   console.log(`Server is running on http://localhost:${port}`);
-})
-
+});
