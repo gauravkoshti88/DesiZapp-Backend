@@ -150,54 +150,73 @@ export const placeOrder = async (req, res) => {
   try {
     const { cartItems, paymentMethod, deliveryAddress, totalAmount } = req.body;
 
-    if (cartItems.length === 0 || !cartItems) {
+    if (!cartItems || cartItems.length === 0) {
       return res.status(400).json({
         error: "Cart is empty",
       });
     }
 
+    if (!deliveryAddress) {
+      return res.status(400).json({
+        error: "Delivery address is required",
+      });
+    }
+
     if (
       !deliveryAddress.text ||
-      !deliveryAddress.latitude ||
-      !deliveryAddress.longitude
+      deliveryAddress.latitude === undefined ||
+      deliveryAddress.longitude === undefined
     ) {
       return res.status(400).json({
         error: "Send Complete Delivery Address",
       });
     }
 
-    let groupItemsByShop = {};
+    const groupItemsByShop = {};
 
     cartItems.forEach((item) => {
-      const shopId = item.shop._id ? item.shop._id : item.shop;
+      const shopId = item.shop?._id || item.shop;
+
+      if (!shopId) {
+        throw new Error("Shop ID is missing from cart item");
+      }
+
       if (!groupItemsByShop[shopId]) {
         groupItemsByShop[shopId] = [];
       }
+
       groupItemsByShop[shopId].push(item);
     });
 
     const shopOrders = await Promise.all(
       Object.keys(groupItemsByShop).map(async (shopId) => {
         const shop = await Shop.findById(shopId).populate("owner");
+
         if (!shop) {
-          return res.status(400).json({
-            error: "Shop not found",
-          });
+          throw new Error(`Shop not found: ${shopId}`);
         }
+
+        if (!shop.owner) {
+          throw new Error(`Shop owner not found: ${shopId}`);
+        }
+
         const items = groupItemsByShop[shopId];
+
         const subtotal = items.reduce(
-          (sum, i) => sum + Number(i.price) * Number(i.quantity),
+          (sum, item) =>
+            sum + Number(item.price || 0) * Number(item.quantity || 0),
           0,
         );
+
         return {
           shop: shop._id,
           owner: shop.owner._id,
           subtotal,
-          shopOrderItems: items.map((i) => ({
-            item: i.id,
-            dishname: i.dishname,
-            price: i.price,
-            quantity: i.quantity,
+          shopOrderItems: items.map((item) => ({
+            item: item.id,
+            dishname: item.dishname,
+            price: item.price,
+            quantity: item.quantity,
           })),
         };
       }),
@@ -213,7 +232,7 @@ export const placeOrder = async (req, res) => {
         .slice(2, 10)}`;
 
       const razorpayOrder = await instance.orders.create({
-        amount: Math.round(totalAmount * 100),
+        amount: Math.round(Number(totalAmount) * 100),
         currency: "INR",
         receipt: `receipt_order_${Date.now()}`,
       });
@@ -235,7 +254,7 @@ export const placeOrder = async (req, res) => {
         intentKey,
         idempotencyKey,
         razorpayOrderId: razorpayOrder.id,
-        amount: Math.round(totalAmount * 100),
+        amount: Math.round(Number(totalAmount) * 100),
         currency: "INR",
         paymentMethod: "ONLINE",
         status: "created",
@@ -243,6 +262,7 @@ export const placeOrder = async (req, res) => {
       });
 
       return res.status(200).json({
+        success: true,
         razorpayOrder,
         orderId: newOrder._id,
         paymentIntentId: intentKey,
@@ -261,16 +281,18 @@ export const placeOrder = async (req, res) => {
       "shopOrders.shopOrderItems.item",
       "dishname image price",
     );
+
     await newOrder.populate("shopOrders.shop", "restaurantName");
+
     await newOrder.populate("shopOrders.owner", "fullname socketId");
+
     await newOrder.populate("customer", "fullname email phone");
 
     const io = req.app.get("io");
 
     if (io) {
       newOrder.shopOrders.forEach((shopOrder) => {
-        const ownerSocketId = shopOrder.owner.socketId;
-        ("Emitting newOrder to:", ownerSocketId);
+        const ownerSocketId = shopOrder.owner?.socketId;
 
         if (ownerSocketId) {
           io.to(ownerSocketId).emit("newOrder", {
@@ -286,10 +308,20 @@ export const placeOrder = async (req, res) => {
       });
     }
 
-    return res.status(201).json(newOrder);
+    return res.status(201).json({
+      success: true,
+      order: newOrder,
+    });
   } catch (error) {
+    console.error("Place Order Error:", error);
+
+    if (res.headersSent) {
+      return;
+    }
+
     return res.status(500).json({
-      error: `Place Order Error ${error}`,
+      success: false,
+      error: error.message || "Failed to place order",
     });
   }
 };
