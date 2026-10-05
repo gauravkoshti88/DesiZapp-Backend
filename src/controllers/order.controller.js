@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import DeliveryAssign from "../models/deliveryAssign.model.js";
 import Order from "../models/order.model.js";
 import Shop from "../models/shop.model.js";
@@ -62,14 +63,26 @@ const finalizePaidOrder = async ({
     throw new Error("Order not found after payment finalization.");
   }
 
-  // Keep Razorpay payment ID if it was already stored.
+  // If another request already paid this order, verify the same payment ID.
+  if (finalOrder.payment === true) {
+    if (
+      finalOrder.razorpayPaymentId &&
+      finalOrder.razorpayPaymentId !== razorpayPaymentId
+    ) {
+      throw new Error("Paid order contains a different Razorpay payment ID.");
+    }
+  }
+
+  // Ensure payment fields are correctly stored.
   if (
-    !finalOrder.razorpayPaymentId ||
+    finalOrder.payment !== true ||
+    finalOrder.paymentStatus !== "captured" ||
     finalOrder.razorpayPaymentId !== razorpayPaymentId
   ) {
-    finalOrder.razorpayPaymentId = razorpayPaymentId;
     finalOrder.payment = true;
     finalOrder.paymentStatus = "captured";
+    finalOrder.razorpayPaymentId = razorpayPaymentId;
+
     await finalOrder.save();
   }
 
@@ -114,7 +127,7 @@ const finalizePaidOrder = async ({
 
     const io = req?.app?.get("io");
 
-    if (io) {
+    if (io && populatedOrder) {
       for (const shopOrder of populatedOrder.shopOrders) {
         const ownerId = shopOrder?.shop?.owner;
 
@@ -135,7 +148,7 @@ const finalizePaidOrder = async ({
       }
     }
 
-    finalOrder = populatedOrder;
+    finalOrder = populatedOrder || finalOrder;
   }
 
   return finalOrder;
@@ -347,11 +360,15 @@ export const paymentVerify = async (req, res) => {
       });
     }
 
-    // If webhook already completed the payment.
-    if (
-      order.payment === true &&
-      order.razorpayPaymentId === razorpayPaymentId
-    ) {
+    // Webhook may have already completed the payment.
+    if (order.payment === true) {
+      if (order.razorpayPaymentId !== razorpayPaymentId) {
+        return res.status(400).json({
+          success: false,
+          message: "Payment ID does not match the paid order.",
+        });
+      }
+
       const populatedOrder = await Order.findById(order._id)
         .populate("shopOrders.shop")
         .populate("shopOrders.shopOrderItems.item")
