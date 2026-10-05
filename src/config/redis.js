@@ -1,47 +1,83 @@
-import redis from 'redis';
+import redis from "redis";
 
 let client = null;
 let isConnected = false;
 
-if (process.env.REDIS_URL) {
+const redisUrl = process.env.REDIS_URL;
+
+if (redisUrl) {
   try {
     client = redis.createClient({
-      url: process.env.REDIS_URL,
+      url: redisUrl,
       socket: {
+        connectTimeout: 10000,
         reconnectStrategy: (retries) => {
-          if (retries > 5) {
-            console.log("Redis reconnection attempts exhausted. Operating in fallback mode.");
+          if (retries >= 5) {
+            console.warn(
+              "Redis reconnection attempts exhausted. Operating in fallback mode.",
+            );
+
             return false;
           }
-          return Math.min(retries * 500, 3000);
-        }
-      }
-    });
 
-    client.on("error", (err) => {
-      console.warn("Redis Warning / Error (gracefully continuing):", err.message || err);
-      isConnected = false;
+          return Math.min(retries * 500, 3000);
+        },
+      },
     });
 
     client.on("connect", () => {
-      isConnected = true;
-      console.log("Redis Connected Successfully");
+      console.log("Redis connecting...");
     });
 
     client.on("ready", () => {
       isConnected = true;
+      console.log("Redis Connected Successfully");
     });
 
     client.on("end", () => {
       isConnected = false;
+      console.warn("Redis connection closed.");
     });
 
-    client.connect().catch((err) => {
-      console.warn("Redis initial connection failed (continuing without cache):", err.message || err);
+    client.on("error", (err) => {
       isConnected = false;
+
+      console.warn(
+        "Redis Warning / Error (gracefully continuing):",
+        err?.message || err,
+      );
     });
+
+    client
+      .connect()
+      .then(async () => {
+        try {
+          const result = await client.ping();
+
+          if (result === "PONG") {
+            isConnected = true;
+            console.log("Redis PING successful: PONG");
+          }
+        } catch (error) {
+          isConnected = false;
+
+          console.warn(
+            "Redis PING failed (continuing without cache):",
+            error?.message || error,
+          );
+        }
+      })
+      .catch((err) => {
+        isConnected = false;
+
+        console.warn(
+          "Redis initial connection failed (continuing without cache):",
+          err?.message || err,
+        );
+      });
   } catch (error) {
-    console.warn("Failed to initialize Redis client:", error.message || error);
+    console.warn("Failed to initialize Redis client:", error?.message || error);
+
     client = null;
     isConnected = false;
   }
@@ -49,35 +85,70 @@ if (process.env.REDIS_URL) {
   console.log("No REDIS_URL provided. Operating in direct database mode.");
 }
 
-// Graceful wrapper that avoids crashing if Redis is offline
 const safeRedisClient = {
   get: async (key) => {
-    if (!isConnected || !client) return null;
+    if (!client || !isConnected) {
+      return null;
+    }
+
     try {
       return await client.get(key);
     } catch (err) {
-      console.warn(`Redis get("${key}") failed:`, err.message);
+      isConnected = false;
+
+      console.warn(`Redis get("${key}") failed:`, err?.message || err);
+
       return null;
     }
   },
+
   setEx: async (key, seconds, value) => {
-    if (!isConnected || !client) return null;
+    if (!client || !isConnected) {
+      return null;
+    }
+
     try {
       return await client.setEx(key, seconds, value);
     } catch (err) {
-      console.warn(`Redis setEx("${key}") failed:`, err.message);
+      isConnected = false;
+
+      console.warn(`Redis setEx("${key}") failed:`, err?.message || err);
+
       return null;
     }
   },
+
   del: async (key) => {
-    if (!isConnected || !client) return null;
+    if (!client || !isConnected) {
+      return null;
+    }
+
     try {
       return await client.del(key);
     } catch (err) {
-      console.warn(`Redis del("${key}") failed:`, err.message);
+      isConnected = false;
+
+      console.warn(`Redis del("${key}") failed:`, err?.message || err);
+
       return null;
     }
-  }
+  },
+
+  ping: async () => {
+    if (!client || !isConnected) {
+      return null;
+    }
+
+    try {
+      return await client.ping();
+    } catch (err) {
+      isConnected = false;
+
+      console.warn("Redis ping failed:", err?.message || err);
+
+      return null;
+    }
+  },
 };
 
 export default safeRedisClient;
