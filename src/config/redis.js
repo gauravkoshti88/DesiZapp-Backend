@@ -3,24 +3,21 @@ import redis from "redis";
 let client = null;
 let isConnected = false;
 
-const redisUrl = process.env.REDIS_URL;
-
-if (redisUrl) {
+if (process.env.REDIS_URL) {
   try {
     client = redis.createClient({
-      url: redisUrl,
+      url: process.env.REDIS_URL,
       socket: {
-        connectTimeout: 10000,
+        connectTimeout: 15000,
         reconnectStrategy: (retries) => {
           if (retries >= 5) {
             console.warn(
               "Redis reconnection attempts exhausted. Operating in fallback mode.",
             );
-
             return false;
           }
 
-          return Math.min(retries * 500, 3000);
+          return Math.min(retries * 1000, 5000);
         },
       },
     });
@@ -41,7 +38,6 @@ if (redisUrl) {
 
     client.on("error", (err) => {
       isConnected = false;
-
       console.warn(
         "Redis Warning / Error (gracefully continuing):",
         err?.message || err,
@@ -60,19 +56,14 @@ if (redisUrl) {
           }
         } catch (error) {
           isConnected = false;
-
-          console.warn(
-            "Redis PING failed (continuing without cache):",
-            error?.message || error,
-          );
+          console.warn("Redis PING failed:", error?.message || error);
         }
       })
-      .catch((err) => {
+      .catch((error) => {
         isConnected = false;
-
         console.warn(
-          "Redis initial connection failed (continuing without cache):",
-          err?.message || err,
+          "Redis initial connection failed:",
+          error?.message || error,
         );
       });
   } catch (error) {
@@ -87,65 +78,34 @@ if (redisUrl) {
 
 const safeRedisClient = {
   get: async (key) => {
-    if (!client || !isConnected) {
-      return null;
-    }
+    if (!client || !isConnected) return null;
 
     try {
       return await client.get(key);
-    } catch (err) {
-      isConnected = false;
-
-      console.warn(`Redis get("${key}") failed:`, err?.message || err);
-
+    } catch (error) {
+      console.warn(`Redis get("${key}") failed:`, error?.message || error);
       return null;
     }
   },
 
   setEx: async (key, seconds, value) => {
-    if (!client || !isConnected) {
-      return null;
-    }
+    if (!client || !isConnected) return null;
 
     try {
       return await client.setEx(key, seconds, value);
-    } catch (err) {
-      isConnected = false;
-
-      console.warn(`Redis setEx("${key}") failed:`, err?.message || err);
-
+    } catch (error) {
+      console.warn(`Redis setEx("${key}") failed:`, error?.message || error);
       return null;
     }
   },
 
   del: async (key) => {
-    if (!client || !isConnected) {
-      return null;
-    }
+    if (!client || !isConnected) return null;
 
     try {
       return await client.del(key);
-    } catch (err) {
-      isConnected = false;
-
-      console.warn(`Redis del("${key}") failed:`, err?.message || err);
-
-      return null;
-    }
-  },
-
-  ping: async () => {
-    if (!client || !isConnected) {
-      return null;
-    }
-
-    try {
-      return await client.ping();
-    } catch (err) {
-      isConnected = false;
-
-      console.warn("Redis ping failed:", err?.message || err);
-
+    } catch (error) {
+      console.warn(`Redis del("${key}") failed:`, error?.message || error);
       return null;
     }
   },
